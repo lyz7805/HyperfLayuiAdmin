@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>编辑用户</title>
+    <meta name="renderer" content="webkit" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <link rel="stylesheet" href="../../lib/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+    <link rel="stylesheet" href="/admin/lib/font-awesome-4.7.0/css/font-awesome.min.css" media="all" />
+    <style>
+      body {
+        background-color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layui-form layuimini-form" id="form_view_id"></div>
+    <script id="form_tpl_id" type="text/html">
+      <input type="hidden" name="id" value="{{d.id}}" />
+      <div class="layui-form-item">
+        <label class="layui-form-label required">用户名</label>
+        <div class="layui-input-block">
+          <input
+            type="text"
+            name="username"
+            lay-verify="required"
+            lay-reqtext="用户名不能为空"
+            placeholder="请输入用户名"
+            value="{{d.username}}"
+            class="layui-input"
+          />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label required">用户昵称</label>
+        <div class="layui-input-block">
+          <input
+            type="text"
+            name="name"
+            lay-verify="required"
+            lay-reqtext="用户昵称不能为空"
+            placeholder="请输入用户昵称"
+            value="{{d.name}}"
+            class="layui-input"
+          />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">用户密码</label>
+        <div class="layui-input-block">
+          <input type="password" name="password" placeholder="请输入用户密码" value="" class="layui-input" />
+          <tip>用户密码不填则不修改密码</tip>
+        </div>
+      </div>
+
+      <div class="layui-form-item">
+        <div class="layui-input-block">
+          <button class="layui-btn" lay-submit lay-filter="saveBtn">修改</button>
+        </div>
+      </div>
+    </script>
+
+    <script src="../../lib/layui/layui.js" charset="utf-8"></script>
+    <script src="../../js/lay-config.js" charset="utf-8"></script>
+    <script>
+      layui.use(['laytpl', 'form', 'layer'], function () {
+        var form = layui.form,
+          layer = layui.layer,
+          laytpl = layui.laytpl,
+          $ = layui.$;
+
+        var id = sessionStorage.getItem('edit_id');
+        $.getJSON('/admin/user/get?id=' + id, function (res) {
+          if (res.code != 200 || res.data == undefined) {
+            layer.msg(res.message || '用户不存在或已删除');
+            return;
+          }
+          var getTpl = form_tpl_id.innerHTML,
+            view = document.getElementById('form_view_id');
+          laytpl(getTpl).render(res.data, function (html) {
+            view.innerHTML = html;
+          });
+          form.render();
+        });
+
+        //监听提交
+        form.on('submit(saveBtn)', function (data) {
+          if (!data.field.password) {
+            delete data.field.password;
+          }
+          $.ajax({
+            url: '/admin/user/edit',
+            type: 'post',
+            data: data.field,
+            success: function (data) {
+              if (data.code != 200) {
+                layer.msg(data.message);
+                return;
+              }
+
+              var index = layer.alert('用户修改成功，请刷新', function () {
+                // 关闭弹出层
+                layer.close(index);
+
+                var iframeIndex = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(iframeIndex);
+              });
+            },
+            complete: function () {},
+          });
+          return false;
+        });
+      });
+    </script>
+  </body>
+</html>

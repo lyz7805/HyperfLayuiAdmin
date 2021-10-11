@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>设置角色</title>
+    <meta name="renderer" content="webkit" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <link rel="stylesheet" href="../../lib/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+  </head>
+
+  <body>
+    <div class="layuimini-container">
+      <div class="layuimini-main">
+        <form class="layui-form layuimini-form" lay-filter="role">
+          <div class="layui-form-item">
+            <label class="layui-form-label">用户ID</label>
+            <div class="layui-input-block">
+              <input type="number" name="id" class="layui-input layui-disabled" />
+            </div>
+          </div>
+          <div class="layui-form-item">
+            <label class="layui-form-label">用户名</label>
+            <div class="layui-input-block">
+              <input type="text" name="username" class="layui-input layui-disabled" />
+            </div>
+          </div>
+          <div class="layui-form-item">
+            <label class="layui-form-label">角色</label>
+            <div class="layui-input-block" id="roles"></div>
+          </div>
+          <div class="layui-form-item">
+            <div class="layui-input-block">
+              <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn">确认保存</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    <script type="text/html" id="roleTemp">
+      <input type="checkbox" name="roles[{{d.id}}]" title="{{d.name}}" />
+    </script>
+    <script src="../../lib/layui/layui.js" charset="utf-8"></script>
+    <script src="../../js/lay-config.js" charset="utf-8"></script>
+    <script>
+      layui.use(['form', 'laytpl', 'table'], function () {
+        var $ = layui.jquery,
+          form = layui.form,
+          laytpl = layui.laytpl,
+          table = layui.table;
+
+        layer.load(2);
+        let loading = layer.load(2);
+        let params = new URLSearchParams(location.search);
+        let id = params.get('id') || 0;
+        if (id <= 0) {
+          layer.msg('未设置参数ID');
+          return;
+        } else if (id == 1) {
+          layer.msg('超级管理员不需要设置角色');
+          return;
+        }
+
+        let roles = [];
+        $.getJSON('/admin/role/listAll', function (res) {
+          layer.closeAll('loading');
+          if (res.code != 200) {
+            layer.msg(res.message || '获取角色列表失败');
+            return;
+          }
+
+          if (res.data && res.data.length > 0) {
+            roles = res.data;
+            res.data.forEach((item) =>
+              laytpl($('#roleTemp').html()).render(item, function (html) {
+                $('#roles').append(html);
+              })
+            );
+            form.render();
+          } else {
+            layer.msg('暂未设置角色，请先增加角色');
+            return;
+          }
+        });
+
+        $.getJSON('/admin/user/get?id=' + id, function (res) {
+          if (res.code != 200) {
+            layer.msg(res.message || '获取用户信息失败');
+            return;
+          }
+
+          let defaultVal = {
+            id,
+            username: res.data.username,
+          };
+          if (res.data.roles && res.data.roles.length > 0) {
+            res.data.roles.forEach((item) => (defaultVal['roles[' + item.id + ']'] = 'on'));
+          }
+          form.val('role', defaultVal);
+        });
+
+        //监听提交
+        form.on('submit(saveBtn)', function (data) {
+          const field = data.field;
+          console.log(field);
+          let post = {
+            id: field.id,
+            roles: [],
+          };
+          roles.forEach((item) => {
+            if (field['roles[' + item.id + ']']) {
+              post.roles.push(item.id);
+            }
+          });
+          if (post.roles.length == 0) {
+            layer.msg('未选择任何角色！');
+            return false;
+          }
+          console.log(post);
+          $.ajax({
+            url: '/admin/user/setRole',
+            type: 'post',
+            data: post,
+            success: function (data) {
+              console.log(data);
+              if (data.code != 200) {
+                layer.msg(data.message);
+                return;
+              }
+
+              var index = layer.alert('用户角色设置成功，请刷新', function () {
+                // 关闭弹出层
+                layer.close(index);
+
+                var iframeIndex = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(iframeIndex);
+              });
+            },
+            complete: function () {},
+          });
+          return false;
+        });
+      });
+    </script>
+    <script></script>
+  </body>
+</html>

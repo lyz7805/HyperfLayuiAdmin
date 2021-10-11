@@ -1,0 +1,49 @@
+openapi: 3.0.0
+info:
+  title: 后台数据接口
+  description: 后台数据接口
+  version: 1.0.0
+paths:
+  /api/index/hello:
+    get:
+      tags:
+        - Index
+      summary: ''
+      description: ''
+      operationId: hello
+      parameters:
+        -
+          name: name
+          in: query
+          description: name
+          required: false
+          schema:
+            type: string
+          example: hyperf
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+components:
+  schemas:
+    Result:
+      title: 通用返回结果
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+      type: object
+      example:
+        code: 200
+        message: success
+        data: object
+tags:
+  -
+    name: Admin
+    description: 后台管理

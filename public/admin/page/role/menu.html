@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>权限管理</title>
+    <link rel="stylesheet" href="../../lib/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+    <link rel="stylesheet" href="/admin/lib/font-awesome-4.7.0/css/font-awesome.min.css" media="all" />
+    <style>
+      .layui-btn:not(.layui-btn-lg):not(.layui-btn-sm):not(.layui-btn-xs) {
+        height: 34px;
+        line-height: 34px;
+        padding: 0 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layuimini-container">
+      <div class="layuimini-main">
+        <div>
+          <div class="layui-btn-group">
+            <button class="layui-btn" id="btn-expand">全部展开</button>
+            <button class="layui-btn layui-btn-normal" id="btn-fold">全部折叠</button>
+          </div>
+        </div>
+      </div>
+      <div class="layuimini-main">
+        <div style="max-height: 550px; overflow: scroll">
+          <table id="menu-table" class="layui-table" lay-filter="menu-table"></table>
+        </div>
+        <div class="layui-btn-group">
+          <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn">确认保存</button>
+        </div>
+      </div>
+    </div>
+    <script type="text/html" id="state">
+      <input type="checkbox" name="state" value="{{d.id}}" lay-skin="switch" lay-text="开|关" lay-filter="state" {{
+      d.state == 1 ? 'checked' : '' }} disabled>
+    </script>
+
+    <script src="../../lib/layui/layui.js" charset="utf-8"></script>
+    <script src="../../js/lay-config.js" charset="utf-8"></script>
+    <script>
+      layui.use(['form', 'table', 'treeTable'], function () {
+        var $ = layui.jquery;
+        var form = layui.form;
+        var table = layui.table;
+        var treeTable = layui.treeTable;
+
+        layer.load(2);
+        let loading = layer.load(2);
+        let params = new URLSearchParams(location.search);
+        let id = params.get('id') || 0;
+        if (id <= 0) {
+          layer.msg('未设置参数ID');
+          return;
+        }
+
+        menuIds = [];
+
+        // 渲染表格
+        let insTb = treeTable.render({
+          elem: '#menu-table',
+          url: '/admin/menu/list',
+          statusCode: 200,
+          tree: {
+            iconIndex: 2,
+            isPidData: true,
+            idName: 'id',
+            pidName: 'parent_id',
+          },
+          cols: [
+            [
+              { type: 'checkbox' },
+              { field: 'id', title: '菜单ID', width: 80 },
+              { field: 'title', minWidth: 200, title: '菜单名称' },
+              { field: 'href', title: '菜单URL' },
+              {
+                field: 'icon',
+                title: '图标',
+                width: 100,
+                align: 'center',
+                templet: function (d) {
+                  if (d.icon) {
+                    return `<span><i class="${d.icon}"></i></span>`;
+                  }
+                  return '';
+                },
+              },
+              { field: 'target', width: 100, align: 'center', title: '打开方式' },
+              { field: 'sort', width: 100, align: 'center', title: '排序' },
+              {
+                field: 'is_menu',
+                width: 100,
+                align: 'center',
+                templet: function (d) {
+                  if (d.is_menu == 0) {
+                    return '<span class="layui-badge layui-bg-gray">按钮</span>';
+                  }
+                  if (d.parent_id == 0) {
+                    return '<span class="layui-badge layui-bg-blue">目录</span>';
+                  } else {
+                    return '<span class="layui-badge-rim">菜单</span>';
+                  }
+                },
+                title: '类型',
+              },
+              {
+                field: 'state',
+                width: 100,
+                title: '状态',
+                align: 'center',
+                templet: '#state',
+              },
+            ],
+          ],
+          done: function () {
+            layer.closeAll('loading');
+            $.getJSON('/admin/role/getPermissionMenuIds?id=' + id, function (res) {
+              if (res.code != 200) {
+                layer.msg(res.message || '获取角色权限错误');
+                return;
+              }
+
+              menuIdsStr = res.data[id];
+              menuIds = menuIdsStr.split(',');
+              insTb.setChecked(menuIds);
+            });
+          },
+        });
+
+        $('#btn-expand').click(function () {
+          insTb.expandAll();
+        });
+
+        $('#btn-fold').click(function () {
+          insTb.foldAll();
+        });
+
+        // 监听行双击事件
+        treeTable.on('rowDouble(menu-table)', function (obj) {
+          // console.log(obj);
+          menuId = obj.data.id;
+          insTb.expand(menuId);
+        });
+
+        treeTable.on('checkbox(menu-table)', function (obj) {
+          // console.log(obj.checked); // 当前是否选中状态
+          // console.log(obj.data); // 选中行的相关数据
+          // console.log(obj.type); // 如果触发的是全选，则为：all，如果触发的是单选，则为：one
+        });
+
+        //监听提交
+        form.on('submit(saveBtn)', function (data) {
+          let status = insTb.checkStatus();
+          let menuIds = '';
+          if (status.length > 0) {
+            status.forEach(function (item) {
+              menuIds += item.id + ',';
+            });
+            menuIds = menuIds.substr(0, menuIds.length - 1);
+          } else {
+            layer.msg('未选择任何菜单权限！');
+            return;
+          }
+          $.ajax({
+            url: '/admin/role/setPermission',
+            type: 'post',
+            data: {
+              id: id,
+              menus: menuIds,
+            },
+            success: function (data) {
+              if (data.code != 200) {
+                layer.msg(data.message);
+                return;
+              }
+
+              var index = layer.alert('角色权限设置成功，请刷新', function () {
+                // 关闭弹出层
+                layer.close(index);
+
+                var iframeIndex = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(iframeIndex);
+              });
+            },
+            complete: function () {},
+          });
+          return false;
+        });
+      });
+    </script>
+  </body>
+</html>
