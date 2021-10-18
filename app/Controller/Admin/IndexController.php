@@ -51,7 +51,7 @@ class IndexController extends AbstractBaseAdminController
             "href" => "page/welcome.html"
         ];
         $logoInfo = [
-            "title" => "数据中台监控预警",
+            "title" => "HyperfLayuiAdmin",
             "image" => "images/logo.png",
             "href" => ""
         ];
