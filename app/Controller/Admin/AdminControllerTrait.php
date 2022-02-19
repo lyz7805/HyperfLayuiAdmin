@@ -27,15 +27,9 @@ trait AdminControllerTrait
         $where = [];
         $where = $this->getWhere($request);
 
-        /** @var Collection @all */
-        $all = $this->service->getAll($where, 'created_at desc, id desc');
-
-        $all = $all instanceof Collection ? $all : Collection::make($all);
-        $list = $all->forPage($page, $limit);
-
-
-        $paginator = new Paginator($list, $all->count(), $limit, $page);
-        return $this->success($paginator->jsonSerialize());
+        /** @var Paginator */
+        $pageList = $this->service->getPageList($where, 'created_at desc, id desc', $page, $limit);
+        return $this->success($pageList->jsonSerialize());
     }
 
     public function changeState(RequestInterface $request)

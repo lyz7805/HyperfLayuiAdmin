@@ -41,6 +41,20 @@ abstract class AbstractAdminService
         return $query->get();
     }
 
+    public function getPageList(array $where = [], string $orderBy = null, int $page = 1, int $pageSize = 15)
+    {
+        $query = $this->model::query();
+        count($where) && $query->where($where);
+        if ($orderBy) {
+            $orders = explode(',', trim($orderBy));
+            foreach ($orders as $order) {
+                $ob = explode(' ', preg_replace('/ +/', ' ', trim($order)));
+                $query->orderBy($ob[0], $ob[1] ?? 'asc');
+            }
+        }
+        return $query->paginate($pageSize, ['*'], 'page', $page);
+    }
+
     public function changeState(int $id, int $state = 1)
     {
         if ($state != 0) {
