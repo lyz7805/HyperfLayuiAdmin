@@ -12,8 +12,9 @@
     "description": "A coroutine framework that focuses on hyperspeed and flexible, specifically use for build microservices and middlewares.",
     "license": "Apache-2.0",
     "require": {
-        "php": ">=7.4",
+        "php": ">=8.0",
         "ext-swoole": ">=4.5",
+        "ext-openssl": "*",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
         "ext-pdo_sqlsrv": "*",
